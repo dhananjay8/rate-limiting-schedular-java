@@ -1,0 +1,88 @@
+spring:
+  application:
+    name: rate-limiting-schedular-service
+  task:
+    scheduling:
+      pool:
+        size: 4
+      shutdown:
+        await-termination: true
+        await-termination-period: 20s
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+      connect-timeout: 2s
+      timeout: 2s
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_COMMAND_GROUP:scheduler-command-processors-v1}
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        max.poll.interval.ms: 300000
+        max.poll.records: 100
+    producer:
+      acks: all
+      retries: 2147483647
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 30000
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    listener:
+      ack-mode: manual
+      missing-topics-fatal: true
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+spring.lifecycle:
+  timeout-per-shutdown-phase: 30s
+
+scheduler:
+  key-prefix: ${SCHEDULER_KEY_PREFIX:scheduler:v1}
+  shard-count: ${SCHEDULER_SHARD_COUNT:64}
+  active-queue-batch-size: ${SCHEDULER_ACTIVE_QUEUE_BATCH_SIZE:500}
+  promotion-batch-size: ${SCHEDULER_PROMOTION_BATCH_SIZE:100}
+  dispatch-batch-size: ${SCHEDULER_DISPATCH_BATCH_SIZE:100}
+  max-payload-bytes: ${SCHEDULER_MAX_PAYLOAD_BYTES:262144}
+  deduplication-ttl: ${SCHEDULER_DEDUPLICATION_TTL:7d}
+  dispatch-claim-idle: ${SCHEDULER_DISPATCH_CLAIM_IDLE:30s}
+  kafka-send-timeout: ${SCHEDULER_KAFKA_SEND_TIMEOUT:10s}
+  kafka-health-timeout: ${SCHEDULER_KAFKA_HEALTH_TIMEOUT:2s}
+  queue-poll-interval: ${SCHEDULER_QUEUE_POLL_INTERVAL:1000}
+  dispatch-poll-interval: ${SCHEDULER_DISPATCH_POLL_INTERVAL:250}
+  command-topic: ${SCHEDULER_COMMAND_TOPIC:scheduler.commands.v1}
+  dead-letter-suffix: ${SCHEDULER_DEAD_LETTER_SUFFIX:.DLT}
+  dispatch-group: ${SCHEDULER_DISPATCH_GROUP:scheduler-dispatchers-v1}
+  consumer-id: ${SCHEDULER_CONSUMER_ID:${HOSTNAME:local}-${random.uuid}}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,redis,kafka
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  structured:
+    format:
+      console: logstash

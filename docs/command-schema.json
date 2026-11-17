@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Scheduler command",
+  "description": "Version-one Kafka command contract",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["type", "queueId", "taskId", "topic", "payload", "maxInFlight"],
+      "properties": {
+        "type": { "const": "ENQUEUE" },
+        "queueId": { "$ref": "#/$defs/identifier" },
+        "taskId": { "$ref": "#/$defs/identifier" },
+        "topic": { "$ref": "#/$defs/topic" },
+        "payload": { "type": "string" },
+        "maxInFlight": { "type": "integer", "minimum": 1 },
+        "executeAtEpochMillis": false
+      },
+      "additionalProperties": true
+    },
+    {
+      "type": "object",
+      "required": [
+        "type",
+        "queueId",
+        "taskId",
+        "topic",
+        "payload",
+        "maxInFlight",
+        "executeAtEpochMillis"
+      ],
+      "properties": {
+        "type": { "const": "SCHEDULE" },
+        "queueId": { "$ref": "#/$defs/identifier" },
+        "taskId": { "$ref": "#/$defs/identifier" },
+        "topic": { "$ref": "#/$defs/topic" },
+        "payload": { "type": "string" },
+        "maxInFlight": { "type": "integer", "minimum": 1 },
+        "executeAtEpochMillis": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    {
+      "type": "object",
+      "required": ["type", "queueId", "taskId"],
+      "properties": {
+        "type": { "const": "ACK" },
+        "queueId": { "$ref": "#/$defs/identifier" },
+        "taskId": { "$ref": "#/$defs/identifier" },
+        "topic": false,
+        "payload": false,
+        "maxInFlight": false,
+        "executeAtEpochMillis": false
+      },
+      "additionalProperties": true
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "topic": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 249,
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "not": { "enum": [".", ".."] }
+    }
+  }
+}
